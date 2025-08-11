@@ -26,9 +26,10 @@ export default function TopicSelector({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: topicsData, isLoading: topicsLoading } = useQuery({
+  const { data: topicsData, isLoading: topicsLoading, refetch: refetchTopics } = useQuery({
     queryKey: [`/api/topics/${currentSubject}`],
     enabled: !!currentSubject,
+    refetchInterval: 5000, // Refresh every 5 seconds to catch new topics
   });
 
   const processSyllabusMutation = useMutation({
@@ -38,7 +39,7 @@ export default function TopicSelector({
         title: "Processing Started",
         description: "The syllabus is being analyzed to extract topics and subtopics.",
       });
-      // Refresh topics after processing
+      // Invalidate topics immediately to refresh the query
       queryClient.invalidateQueries({ queryKey: [`/api/topics/${currentSubject}`] });
     },
     onError: (error) => {
@@ -49,6 +50,24 @@ export default function TopicSelector({
       });
     }
   });
+
+  // Listen for processing job completion to refresh topics
+  const { data: processingJobs } = useQuery({
+    queryKey: ['/api/processing-jobs'],
+    refetchInterval: 2000,
+  });
+
+  useEffect(() => {
+    const jobs = (processingJobs as any)?.jobs || [];
+    const completedSyllabusJob = jobs.find((job: any) => 
+      job.type === 'syllabus_analysis' && job.status === 'completed'
+    );
+    
+    if (completedSyllabusJob) {
+      // Refresh topics when syllabus processing completes
+      queryClient.invalidateQueries({ queryKey: [`/api/topics/${currentSubject}`] });
+    }
+  }, [processingJobs, currentSubject, queryClient]);
 
   const { data: questionsData } = useQuery({
     queryKey: ['/api/questions/topic', currentTopic],
@@ -156,25 +175,37 @@ export default function TopicSelector({
                   <SelectItem value="biology">Biology</SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
-                onClick={handleProcessSyllabus}
-                disabled={processSyllabusMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-700 px-4"
-                data-testid="button-process-syllabus"
-                title="Process uploaded syllabus to extract topics and subtopics using AI"
-              >
-                {processSyllabusMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Brain className="h-4 w-4 mr-2" />
-                    Process Syllabus
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleProcessSyllabus}
+                  disabled={processSyllabusMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700 px-4"
+                  data-testid="button-process-syllabus"
+                  title="Process uploaded syllabus to extract topics and subtopics using AI"
+                >
+                  {processSyllabusMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="h-4 w-4 mr-2" />
+                      Process Syllabus
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  onClick={() => refetchTopics()}
+                  variant="outline"
+                  size="sm"
+                  className="px-3"
+                  data-testid="button-refresh-topics"
+                  title="Refresh topic list"
+                >
+                  Refresh
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -190,6 +221,13 @@ export default function TopicSelector({
                 <p className="text-xs text-slate-400 text-center mt-1">
                   Found {(topicsData as any)?.topics?.length || 0} topic entries
                 </p>
+                {/* Debug info */}
+                <details className="mt-2">
+                  <summary className="text-xs text-slate-400 cursor-pointer">Debug Info</summary>
+                  <pre className="text-xs text-slate-400 mt-1 overflow-auto">
+                    {JSON.stringify(topicsData, null, 2)}
+                  </pre>
+                </details>
               </div>
             ) : (
               <Select value={currentTopic} onValueChange={handleMainTopicChange}>
