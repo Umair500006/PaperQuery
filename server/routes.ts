@@ -297,7 +297,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!document) return;
 
       // Extract content from PDF
+      console.log(`🔍 Starting PDF extraction for: ${document?.filename}`);
       const pdfContent = await pdfProcessor.extractContent(filePath);
+      console.log(`✅ PDF extraction completed. Text length: ${pdfContent.text.length}`);
+      console.log(`📝 Preview: ${pdfContent.text.substring(0, 100)}...`);
       await storage.updateDocumentContent(documentId, pdfContent.text);
 
       if (document.type === 'syllabus') {

@@ -35,17 +35,24 @@ export class PdfProcessor {
 
       pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
         try {
+          console.log(`📄 Processing PDF: ${path.basename(filePath)}`);
+          console.log(`📊 PDF structure - Pages: ${pdfData.Pages?.length || 0}`);
+          
           // Extract text from parsed PDF data
           let extractedText = '';
           
           if (pdfData.Pages) {
-            for (const page of pdfData.Pages) {
+            for (let pageIndex = 0; pageIndex < pdfData.Pages.length; pageIndex++) {
+              const page = pdfData.Pages[pageIndex];
+              console.log(`📃 Page ${pageIndex + 1} - Texts: ${page.Texts?.length || 0}`);
+              
               if (page.Texts) {
                 for (const textItem of page.Texts) {
                   if (textItem.R) {
                     for (const run of textItem.R) {
                       if (run.T) {
-                        extractedText += decodeURIComponent(run.T) + ' ';
+                        const decodedText = decodeURIComponent(run.T);
+                        extractedText += decodedText + ' ';
                       }
                     }
                   }
@@ -58,12 +65,17 @@ export class PdfProcessor {
           // Clean up the text
           extractedText = extractedText.replace(/\s+/g, ' ').trim();
           
-          if (!extractedText || extractedText.length === 0) {
-            console.warn(`No text extracted from ${path.basename(filePath)} - may be image-only PDF`);
-            extractedText = `[Image-only PDF detected: ${path.basename(filePath)}]
-
-This PDF appears to contain mainly images without extractable text.
-To process image-only PDFs, additional OCR libraries would be needed.`;
+          console.log(`📝 Extracted text length: ${extractedText.length} characters`);
+          console.log(`📄 First 200 characters: ${extractedText.substring(0, 200)}`);
+          
+          if (!extractedText || extractedText.length < 50) {
+            console.warn(`⚠️ Minimal or no text extracted from ${path.basename(filePath)}`);
+            // Instead of giving up, let's provide a more helpful message with actual content if any
+            if (extractedText.length > 0) {
+              extractedText = `[Limited text extraction from ${path.basename(filePath)}]\n\nExtracted content: ${extractedText}`;
+            } else {
+              extractedText = `[No text extracted from ${path.basename(filePath)}]\n\nThis PDF may contain primarily images or scanned content that requires OCR processing.`;
+            }
           }
           
           resolve({
