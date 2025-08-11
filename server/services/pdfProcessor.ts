@@ -42,7 +42,7 @@ This PDF file appears to have structural issues that prevent text extraction:
 
 To process this type of file, additional OCR capabilities would be needed.`;
         
-        resolve({ text: fallbackText, images: [], metadata: {} });
+        resolve({ text: fallbackText, images: [], metadata: { pageCount: 0, fileSize: 0 } });
       });
 
       pdfParser.on("pdfParser_dataReady", (pdfData: any) => {

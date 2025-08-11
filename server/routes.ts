@@ -653,11 +653,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           processedDocuments++;
         } catch (error) {
           console.error(`❌ Error processing ${document.filename}:`, error);
+          const currentProgress = 20 + Math.floor((processedDocuments / pastPaperDocuments.length) * 60);
           await storage.updateProcessingJob(jobId, {
             progress: currentProgress,
             statusMessage: `Error processing ${document.filename}: ${error instanceof Error ? error.message : 'Unknown error'}`
           });
           // Continue with other documents
+          processedDocuments++;
         }
       }
 

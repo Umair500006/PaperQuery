@@ -86,13 +86,14 @@ export async function categorizeQuestions(
         },
         {
           role: "user",
-          content: `Analyze these O-Level ${subject} questions and categorize them according to these topics:\n\n${topicsContext}\n\nQuestions to analyze:\n${questionContent}\n\nReturn JSON array with format: [{"questionText": "string", "questionNumber": "string", "topicMatch": "string", "subtopicMatch": "string", "difficulty": "easy|medium|hard", "marks": number, "hasVectorDiagram": boolean}]`
+          content: `Analyze these O-Level ${subject} questions and categorize them according to these topics:\n\n${topicsContext}\n\nQuestions to analyze:\n${questionContent}\n\nExtract individual questions from the paper content. Look for question numbers (1, 2, 3, etc.) and the associated question text. Return a JSON object with "questions" array containing: [{"questionText": "string", "questionNumber": "string", "topicMatch": "string", "subtopicMatch": "string", "difficulty": "easy|medium|hard", "marks": number, "hasVectorDiagram": boolean}]`
         }
       ],
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const result = JSON.parse(response.choices[0].message.content || '{"questions": []}');
+    console.log(`🤖 AI Response for question extraction: ${JSON.stringify(result).substring(0, 200)}...`);
     return result.questions || [];
   } catch (error) {
     throw new Error(`Failed to categorize questions: ${error instanceof Error ? error.message : 'Unknown error'}`);
