@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { List } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { List, Brain, Loader2 } from "lucide-react";
+import { processSyllabus } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface TopicSelectorProps {
   selectedSubject: string;
@@ -20,10 +23,31 @@ export default function TopicSelector({
   const [currentSubject, setCurrentSubject] = useState(selectedSubject || "physics");
   const [currentTopic, setCurrentTopic] = useState(selectedTopic);
   const [currentSubtopic, setCurrentSubtopic] = useState(selectedSubtopic);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: topicsData, isLoading: topicsLoading } = useQuery({
     queryKey: [`/api/topics/${currentSubject}`],
     enabled: !!currentSubject,
+  });
+
+  const processSyllabusMutation = useMutation({
+    mutationFn: (subject: string) => processSyllabus(subject),
+    onSuccess: (data) => {
+      toast({
+        title: "Processing Started",
+        description: "The syllabus is being analyzed to extract topics and subtopics.",
+      });
+      // Refresh topics after processing
+      queryClient.invalidateQueries({ queryKey: [`/api/topics/${currentSubject}`] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Processing Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   });
 
   const { data: questionsData } = useQuery({
@@ -96,6 +120,10 @@ export default function TopicSelector({
     }
   };
 
+  const handleProcessSyllabus = () => {
+    processSyllabusMutation.mutate(currentSubject);
+  };
+
   const questionCount = (questionsData as any)?.questions?.length || 0;
   const diagramCount = (questionsData as any)?.questions?.filter((q: any) => q.hasVectorDiagram).length || 0;
   const years = (questionsData as any)?.questions?.map((q: any) => q.paperYear).filter(Boolean) || [];
@@ -117,16 +145,37 @@ export default function TopicSelector({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Subject</label>
-            <Select value={currentSubject} onValueChange={handleSubjectChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select subject" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="physics">Physics</SelectItem>
-                <SelectItem value="chemistry">Chemistry</SelectItem>
-                <SelectItem value="biology">Biology</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={currentSubject} onValueChange={handleSubjectChange}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="physics">Physics</SelectItem>
+                  <SelectItem value="chemistry">Chemistry</SelectItem>
+                  <SelectItem value="biology">Biology</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={handleProcessSyllabus}
+                disabled={processSyllabusMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 px-4"
+                data-testid="button-process-syllabus"
+                title="Process uploaded syllabus to extract topics and subtopics using AI"
+              >
+                {processSyllabusMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="h-4 w-4 mr-2" />
+                    Process Syllabus
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           <div>
@@ -136,10 +185,10 @@ export default function TopicSelector({
             ) : mainTopics.length === 0 ? (
               <div className="p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
                 <p className="text-sm text-slate-500 text-center">
-                  📚 Upload a syllabus first to extract topics using AI
+                  No topics found. Upload a syllabus and click "Process Syllabus" to extract topics using AI.
                 </p>
                 <p className="text-xs text-slate-400 text-center mt-1">
-                  Found {(topicsData as any)?.topics?.length || 0} total topic entries, {mainTopics.length} main topics
+                  Found {(topicsData as any)?.topics?.length || 0} topic entries
                 </p>
               </div>
             ) : (

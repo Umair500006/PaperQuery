@@ -20,6 +20,14 @@ export async function uploadFiles(files: File[], type: string, subject: string) 
   return response.json();
 }
 
+export async function processSyllabus(subject: string) {
+  const response = await apiRequest('POST', '/api/process-syllabus', {
+    subject
+  });
+
+  return response.json();
+}
+
 export async function generatePdf(topicId: string, config: any) {
   const response = await apiRequest('POST', '/api/generate-pdf', {
     topicId,

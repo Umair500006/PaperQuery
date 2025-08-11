@@ -111,6 +111,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Process syllabus to extract topics
+  app.post('/api/process-syllabus', async (req, res) => {
+    try {
+      const { subject } = req.body;
+      
+      if (!subject) {
+        return res.status(400).json({ message: 'Subject is required' });
+      }
+
+      // Get all syllabus documents for the subject
+      const syllabusDocuments = await storage.getDocumentsByType('syllabus');
+      const subjectSyllabus = syllabusDocuments.filter(doc => 
+        doc.subject === subject || !doc.subject // Include documents without subject specified
+      );
+
+      if (subjectSyllabus.length === 0) {
+        return res.status(404).json({ message: 'No syllabus documents found for this subject' });
+      }
+
+      // Create a processing job
+      const jobData = insertProcessingJobSchema.parse({
+        type: 'syllabus_analysis',
+        status: 'processing',
+        progress: 0,
+        statusMessage: 'Extracting topics from syllabus...',
+        documentIds: subjectSyllabus.map(doc => doc.id)
+      });
+
+      const job = await storage.createProcessingJob(jobData);
+
+      // Start background processing
+      processSyllabusAsync(job.id, subjectSyllabus, subject);
+
+      res.json({ jobId: job.id, message: 'Syllabus processing started' });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Generate PDF
   app.post('/api/generate-pdf', async (req, res) => {
     try {
@@ -319,6 +358,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       await storage.updateDocumentStatus(documentId, 'error');
       console.error('Document processing error:', error);
+    }
+  }
+
+  async function processSyllabusAsync(jobId: string, syllabusDocuments: any[], subject: string) {
+    try {
+      await storage.updateProcessingJob(jobId, {
+        status: 'processing',
+        progress: 10,
+        statusMessage: 'Reading syllabus documents...'
+      });
+
+      // Combine content from all syllabus documents
+      let combinedContent = '';
+      for (const doc of syllabusDocuments) {
+        if (doc.content) {
+          combinedContent += doc.content + '\n\n';
+        } else {
+          // Extract content if not already processed
+          const pdfContent = await pdfProcessor.extractContent(doc.metadata?.originalPath || '');
+          combinedContent += pdfContent.text + '\n\n';
+          await storage.updateDocumentContent(doc.id, pdfContent.text);
+        }
+      }
+
+      await storage.updateProcessingJob(jobId, {
+        progress: 30,
+        statusMessage: 'Analyzing syllabus content with AI...'
+      });
+
+      // Extract topics using AI
+      const extractedTopics = await extractTopicsFromSyllabus(combinedContent, subject);
+
+      await storage.updateProcessingJob(jobId, {
+        progress: 60,
+        statusMessage: 'Saving topics and subtopics...'
+      });
+
+      // Save topics to storage
+      let topicCount = 0;
+      let subtopicCount = 0;
+
+      for (const topic of extractedTopics) {
+        // Create main topic entry
+        const mainTopicRecord = await storage.createTopic({
+          documentId: syllabusDocuments[0].id, // Associate with first document
+          subject,
+          mainTopic: topic.mainTopic,
+          subtopic: null,
+          description: topic.description
+        });
+        topicCount++;
+
+        // Create subtopic entries
+        for (const subtopic of topic.subtopics) {
+          await storage.createTopic({
+            documentId: syllabusDocuments[0].id,
+            subject,
+            mainTopic: topic.mainTopic,
+            subtopic,
+            description: `Subtopic: ${subtopic}`
+          });
+          subtopicCount++;
+        }
+      }
+
+      await storage.updateProcessingJob(jobId, {
+        status: 'completed',
+        progress: 100,
+        statusMessage: `Successfully extracted ${topicCount} topics and ${subtopicCount} subtopics`,
+        result: { topicCount, subtopicCount, topics: extractedTopics }
+      });
+
+    } catch (error) {
+      await storage.updateProcessingJob(jobId, {
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        statusMessage: 'Failed to process syllabus'
+      });
     }
   }
 
