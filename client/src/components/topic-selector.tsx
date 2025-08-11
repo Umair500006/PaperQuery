@@ -207,22 +207,35 @@ export default function TopicSelector({
             )}
           </div>
 
-          {subtopics.length > 0 && (
+          {currentTopic && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Subtopic (Optional)</label>
-              <Select value={currentSubtopic} onValueChange={handleSubtopicChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All subtopics" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All subtopics</SelectItem>
-                  {subtopics.map((subtopic: any) => (
-                    <SelectItem key={subtopic.id} value={subtopic.id}>
-                      {subtopic.subtopic}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Subtopic (Optional)
+                {subtopics.length > 0 && (
+                  <span className="text-xs text-slate-500 ml-1">({subtopics.length} available)</span>
+                )}
+              </label>
+              {subtopics.length > 0 ? (
+                <Select value={currentSubtopic} onValueChange={handleSubtopicChange}>
+                  <SelectTrigger className="w-full" data-testid="select-subtopic">
+                    <SelectValue placeholder="All subtopics" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All subtopics</SelectItem>
+                    {subtopics.map((subtopic: any) => (
+                      <SelectItem key={subtopic.id} value={subtopic.id}>
+                        {subtopic.subtopic}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="p-3 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                  <p className="text-sm text-slate-500 text-center">
+                    No subtopics found for this topic
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
