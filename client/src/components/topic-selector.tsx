@@ -22,7 +22,7 @@ export default function TopicSelector({
   const [currentSubtopic, setCurrentSubtopic] = useState(selectedSubtopic);
 
   const { data: topicsData, isLoading: topicsLoading } = useQuery({
-    queryKey: ['/api/topics', currentSubject],
+    queryKey: [`/api/topics/${currentSubject}`],
     enabled: !!currentSubject,
   });
 
@@ -49,7 +49,10 @@ export default function TopicSelector({
     return acc;
   }, {}) || {};
 
-  const mainTopics = Object.values(groupedTopics);
+  // Filter to only get main topics (those without subtopic)
+  const mainTopicsFromAPI = (topicsData as any)?.topics?.filter((topic: any) => !topic.subtopic) || [];
+
+  const mainTopics = mainTopicsFromAPI;
   const selectedTopicKey = Object.keys(groupedTopics).find((key: string) => 
     groupedTopics[key].id === currentTopic || 
     groupedTopics[key].subtopics.some((st: any) => st.id === currentTopic)
@@ -127,6 +130,9 @@ export default function TopicSelector({
               <div className="p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
                 <p className="text-sm text-slate-500 text-center">
                   📚 Upload a syllabus first to extract topics using AI
+                </p>
+                <p className="text-xs text-slate-400 text-center mt-1">
+                  Found {(topicsData as any)?.topics?.length || 0} total topic entries
                 </p>
               </div>
             ) : (
