@@ -187,6 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const job = await storage.createProcessingJob(jobData);
 
       // Start background processing
+      console.log(`🚀 Starting background processing for job ${job.id} with ${subjectPastPapers.length} documents`);
       processPastPapersAsync(job.id, subjectPastPapers, subject);
 
       res.json({ jobId: job.id, message: 'Past paper processing started' });
@@ -651,7 +652,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           processedDocuments++;
         } catch (error) {
-          console.error(`Error processing ${document.filename}:`, error);
+          console.error(`❌ Error processing ${document.filename}:`, error);
+          await storage.updateProcessingJob(jobId, {
+            progress: currentProgress,
+            statusMessage: `Error processing ${document.filename}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          });
           // Continue with other documents
         }
       }
