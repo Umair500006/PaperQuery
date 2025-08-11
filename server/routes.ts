@@ -589,11 +589,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Categorize questions using AI
+          console.log(`🤖 AI analyzing ${document.filename} for questions in ${topicsForAI.length} available topics...`);
           const extractedQuestions = await categorizeQuestions(
             document.extractedText,
             topicsForAI,
             subject
           );
+          console.log(`📊 AI found ${extractedQuestions.length} questions in ${document.filename}`);
 
           // Save questions to storage
           for (const question of extractedQuestions) {
@@ -603,6 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
 
             if (matchingTopic) {
+              console.log(`💾 Saving question: "${question.questionText.substring(0, 50)}..." to topic: ${matchingTopic.mainTopic}`);
               await storage.createQuestion({
                 documentId: document.id,
                 topicId: matchingTopic.id,
@@ -615,6 +618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 marks: question.marks || 1
               });
               totalQuestions++;
+              console.log(`✅ Saved question ${totalQuestions}. Vector diagram: ${question.hasVectorDiagram}`);
+            } else {
+              console.warn(`❌ No matching topic found for question: ${question.topicMatch}/${question.subtopicMatch}`);
             }
           }
 

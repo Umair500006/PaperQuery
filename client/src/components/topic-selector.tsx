@@ -71,7 +71,7 @@ export default function TopicSelector({
   }, [processingJobs, currentSubject, queryClient]);
 
   const { data: questionsData } = useQuery({
-    queryKey: ['/api/questions/topic', currentTopic],
+    queryKey: [`/api/questions/topic/${currentTopic}`],
     enabled: !!currentTopic,
   });
 
