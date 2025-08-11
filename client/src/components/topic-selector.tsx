@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { List, Brain, Loader2, FileText } from "lucide-react";
 import { processSyllabus } from "@/lib/api";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface TopicSelectorProps {
@@ -145,10 +146,8 @@ export default function TopicSelector({
 
   const processPastPapersMutation = useMutation({
     mutationFn: async (subject: string) => {
-      return apiRequest(`/api/process-pastpapers`, {
-        method: 'POST',
-        body: { subject }
-      });
+      const response = await apiRequest('POST', '/api/process-pastpapers', { subject });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/processing-jobs'] });
