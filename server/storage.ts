@@ -52,6 +52,69 @@ export class MemStorage implements IStorage {
     this.questions = new Map();
     this.generatedPdfs = new Map();
     this.processingJobs = new Map();
+    
+    // Add sample data for testing
+    this.initializeSampleData();
+  }
+
+  private initializeSampleData() {
+    // Sample Physics topics
+    const physicsTopics = [
+      { mainTopic: "Forces and Motion", subtopics: ["Velocity and Acceleration", "Newton's Laws", "Momentum"] },
+      { mainTopic: "Electricity", subtopics: ["Current and Voltage", "Circuits", "Power"] },
+      { mainTopic: "Waves", subtopics: ["Wave Properties", "Sound Waves", "Light Waves"] },
+      { mainTopic: "Energy", subtopics: ["Kinetic Energy", "Potential Energy", "Conservation of Energy"] }
+    ];
+
+    physicsTopics.forEach((topicGroup, index) => {
+      // Create main topic
+      const mainTopicId = `topic-${index + 1}`;
+      const mainTopic = {
+        id: mainTopicId,
+        documentId: 'sample-syllabus',
+        subject: 'physics',
+        mainTopic: topicGroup.mainTopic,
+        subtopic: null,
+        description: `Main topic covering ${topicGroup.mainTopic}`,
+        createdAt: new Date()
+      };
+      this.topics.set(mainTopicId, mainTopic);
+
+      // Create subtopics
+      topicGroup.subtopics.forEach((subtopic, subIndex) => {
+        const subtopicId = `subtopic-${index + 1}-${subIndex + 1}`;
+        const subtopicData = {
+          id: subtopicId,
+          documentId: 'sample-syllabus',
+          subject: 'physics',
+          mainTopic: topicGroup.mainTopic,
+          subtopic,
+          description: `Subtopic covering ${subtopic}`,
+          createdAt: new Date()
+        };
+        this.topics.set(subtopicId, subtopicData);
+
+        // Add sample questions for each subtopic
+        for (let i = 1; i <= 3; i++) {
+          const questionId = `question-${subtopicId}-${i}`;
+          const question = {
+            id: questionId,
+            documentId: 'sample-paper',
+            topicId: subtopicId,
+            questionText: `Sample question ${i} about ${subtopic}. This is a typical O-Level ${topicGroup.mainTopic.toLowerCase()} question that tests understanding of ${subtopic.toLowerCase()}.`,
+            questionNumber: `${index + 1}.${subIndex + 1}.${i}`,
+            paperYear: '2023',
+            paperSession: 'june',
+            hasVectorDiagram: i === 1, // First question has diagram
+            diagramData: null,
+            difficulty: i === 1 ? 'easy' : i === 2 ? 'medium' : 'hard',
+            marks: i + 1,
+            createdAt: new Date()
+          };
+          this.questions.set(questionId, question);
+        }
+      });
+    });
   }
 
   // Documents

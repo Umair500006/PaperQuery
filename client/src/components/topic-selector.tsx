@@ -50,10 +50,11 @@ export default function TopicSelector({
   }, {}) || {};
 
   const mainTopics = Object.values(groupedTopics);
-  const selectedTopicData = groupedTopics[Object.keys(groupedTopics).find((key: string) => 
+  const selectedTopicKey = Object.keys(groupedTopics).find((key: string) => 
     groupedTopics[key].id === currentTopic || 
     groupedTopics[key].subtopics.some((st: any) => st.id === currentTopic)
-  )] || null;
+  );
+  const selectedTopicData = selectedTopicKey ? groupedTopics[selectedTopicKey] : null;
 
   const subtopics = selectedTopicData?.subtopics || [];
 
