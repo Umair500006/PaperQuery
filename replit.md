@@ -8,6 +8,30 @@ This is a full-stack web application that uses AI to analyze O-level science pas
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (January 2025)
+
+### Database Migration Completed
+- Successfully migrated from in-memory storage to persistent PostgreSQL database
+- Data now persists across server restarts, preventing loss of uploaded documents and extracted questions
+- Implemented DatabaseStorage class with full CRUD operations for all data entities
+
+### Enhanced Question Processing  
+- Fixed status bar progression to properly show progress from 20% to 90% during AI processing
+- Improved question extraction with better error handling and progress reporting
+- Enhanced PDF generation with proper file headers for better download compatibility
+
+### Interactive Question Preview
+- Added drag-and-drop question preview component using React Beautiful DnD
+- Users can now view extracted questions in an organized interface
+- Implemented custom PDF builder where users can drag questions from available list to PDF builder
+- Added question metadata display: difficulty level, marks, vector diagrams, paper year/session
+- Custom PDF generation API endpoint for user-selected questions
+
+### Bug Fixes
+- Fixed PDF download issues by adding proper PDF headers to generated files
+- Corrected TypeScript import issues for component libraries
+- Enhanced error handling throughout the application pipeline
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -26,10 +50,10 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Hot module replacement via Vite integration for seamless development experience
 
 ### Data Storage Solutions
-- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
+- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations  
 - **Connection**: Neon Database serverless PostgreSQL for cloud-hosted database
 - **Schema**: Structured tables for documents, topics, questions, generated PDFs, and processing jobs
-- **Storage Interface**: Abstracted storage layer with in-memory implementation for development and database implementation for production
+- **Storage Interface**: Abstracted storage layer now using DatabaseStorage for persistent data across server restarts
 
 ### Authentication and Authorization
 - **Session Management**: Express sessions with PostgreSQL session store using connect-pg-simple

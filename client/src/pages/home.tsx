@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import FileUpload from "@/components/file-upload";
 import ProcessingStatus from "@/components/processing-status";
 import TopicSelector from "@/components/topic-selector";
 import OutputConfiguration from "@/components/output-configuration";
 import ProgressSteps from "@/components/progress-steps";
+import QuestionPreview from "@/components/question-preview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Cog, HelpCircle } from "lucide-react";
 import { generatePdf, getRecentGeneratedPdfs } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -42,6 +44,31 @@ export default function Home() {
     setSelectedSubtopic(subtopicId || "");
     setCurrentStep(3);
   };
+
+  // PDF Generation using drag-and-drop selected questions
+  const generateCustomPdfMutation = useMutation({
+    mutationFn: async (questionIds: string[]) => {
+      const response = await apiRequest('POST', '/api/generate-custom-pdf', {
+        questionIds,
+        config: outputConfig
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Custom PDF generated successfully!",
+      });
+      refetchPdfs();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate PDF",
+        variant: "destructive"
+      });
+    }
+  });
 
   const handleGeneratePdf = async () => {
     if (!selectedTopic) {
@@ -144,6 +171,16 @@ export default function Home() {
 
             {/* Processing Status */}
             <ProcessingStatus />
+
+            {/* Question Preview and PDF Builder */}
+            {selectedTopic && (
+              <div className="mt-8">
+                <QuestionPreview 
+                  selectedTopic={selectedTopic}
+                  onGeneratePdf={(questionIds) => generateCustomPdfMutation.mutate(questionIds)}
+                />
+              </div>
+            )}
           </div>
 
           {/* Right Column: Topic Selection & Controls */}

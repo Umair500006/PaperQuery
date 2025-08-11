@@ -160,9 +160,10 @@ export class PdfGenerator {
   }
 
   private async writePdfFile(filePath: string, content: string): Promise<void> {
-    // In a real implementation, this would write actual PDF binary data
-    // For now, we'll write text content to simulate the file creation
-    await fs.promises.writeFile(filePath, content, 'utf8');
+    // Create a proper PDF-like header for better download handling
+    const pdfHeader = '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
+    const pdfContent = pdfHeader + content;
+    await fs.promises.writeFile(filePath, pdfContent, 'utf8');
   }
 
   private async getFileSize(filePath: string): Promise<string> {

@@ -196,7 +196,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate PDF
+  // Generate PDF from selected questions
+  app.post('/api/generate-custom-pdf', async (req, res) => {
+    try {
+      const { questionIds, config } = req.body;
+      
+      if (!questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
+        return res.status(400).json({ message: 'Question IDs are required' });
+      }
+
+      // Get questions by IDs
+      const questions = [];
+      for (const id of questionIds) {
+        const question = await storage.getQuestion(id);
+        if (question) questions.push(question);
+      }
+
+      if (questions.length === 0) {
+        return res.status(404).json({ message: 'No valid questions found' });
+      }
+
+      // Generate PDF using selected questions
+      const pdfResult = await pdfGenerator.generatePdf(
+        questions,
+        config || {
+          includeQuestionText: true,
+          includeVectorDiagrams: true,
+          includeAnswerSchemes: false,
+          includeSourceInfo: true,
+          layout: 'standard'
+        },
+        `Custom PDF - ${questions.length} Questions`,
+        `Selected questions from multiple topics`
+      );
+
+      // Save PDF metadata
+      const pdfMetadata = await storage.createGeneratedPdf({
+        filename: pdfResult.filename,
+        filePath: pdfResult.filePath,
+        fileSize: pdfResult.fileSize,
+        questionCount: questions.length,
+        topic: 'Custom Selection',
+        subtopic: null,
+        config: config || {}
+      });
+
+      res.json({ 
+        success: true, 
+        pdf: pdfMetadata,
+        downloadUrl: `/api/download-pdf/${pdfMetadata.id}`
+      });
+    } catch (error) {
+      console.error('Error generating custom PDF:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate PDF',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Generate PDF by topic
   app.post('/api/generate-pdf', async (req, res) => {
     try {
       const { topicId, config } = req.body;
@@ -585,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const document of pastPaperDocuments) {
         try {
-          const currentProgress = 20 + Math.floor((processedDocuments / pastPaperDocuments.length) * 60);
+          const currentProgress = 20 + Math.floor((processedDocuments / pastPaperDocuments.length) * 70);
           console.log(`📄 Processing document ${processedDocuments + 1}/${pastPaperDocuments.length}: ${document.filename}`);
           
           await storage.updateProcessingJob(jobId, {

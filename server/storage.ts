@@ -3,9 +3,12 @@ import {
   type Topic, type InsertTopic,
   type Question, type InsertQuestion,
   type GeneratedPdf, type InsertGeneratedPdf,
-  type ProcessingJob, type InsertProcessingJob
+  type ProcessingJob, type InsertProcessingJob,
+  documents, topics, questions, generatedPdfs, processingJobs
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Documents
@@ -223,4 +226,111 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// DatabaseStorage implementation
+export class DatabaseStorage implements IStorage {
+  // Documents
+  async createDocument(insertDocument: InsertDocument): Promise<Document> {
+    const [document] = await db.insert(documents).values(insertDocument).returning();
+    return document;
+  }
+
+  async getDocument(id: string): Promise<Document | undefined> {
+    const [document] = await db.select().from(documents).where(eq(documents.id, id));
+    return document || undefined;
+  }
+
+  async getDocumentsByType(type: string): Promise<Document[]> {
+    return await db.select().from(documents).where(eq(documents.type, type));
+  }
+
+  async updateDocumentStatus(id: string, status: string): Promise<void> {
+    await db.update(documents)
+      .set({ processingStatus: status })
+      .where(eq(documents.id, id));
+  }
+
+  async updateDocumentContent(id: string, content: string): Promise<void> {
+    await db.update(documents)
+      .set({ content })
+      .where(eq(documents.id, id));
+  }
+
+  // Topics
+  async createTopic(insertTopic: InsertTopic): Promise<Topic> {
+    const [topic] = await db.insert(topics).values(insertTopic).returning();
+    return topic;
+  }
+
+  async getTopic(id: string): Promise<Topic | undefined> {
+    const [topic] = await db.select().from(topics).where(eq(topics.id, id));
+    return topic || undefined;
+  }
+
+  async getTopicsByDocument(documentId: string): Promise<Topic[]> {
+    return await db.select().from(topics).where(eq(topics.documentId, documentId));
+  }
+
+  async getTopicsBySubject(subject: string): Promise<Topic[]> {
+    return await db.select().from(topics).where(eq(topics.subject, subject));
+  }
+
+  // Questions
+  async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {
+    const [question] = await db.insert(questions).values(insertQuestion).returning();
+    return question;
+  }
+
+  async getQuestion(id: string): Promise<Question | undefined> {
+    const [question] = await db.select().from(questions).where(eq(questions.id, id));
+    return question || undefined;
+  }
+
+  async getQuestionsByTopic(topicId: string): Promise<Question[]> {
+    return await db.select().from(questions).where(eq(questions.topicId, topicId));
+  }
+
+  async getQuestionsByDocument(documentId: string): Promise<Question[]> {
+    return await db.select().from(questions).where(eq(questions.documentId, documentId));
+  }
+
+  // Generated PDFs
+  async createGeneratedPdf(insertPdf: InsertGeneratedPdf): Promise<GeneratedPdf> {
+    const [pdf] = await db.insert(generatedPdfs).values(insertPdf).returning();
+    return pdf;
+  }
+
+  async getGeneratedPdf(id: string): Promise<GeneratedPdf | undefined> {
+    const [pdf] = await db.select().from(generatedPdfs).where(eq(generatedPdfs.id, id));
+    return pdf || undefined;
+  }
+
+  async getRecentGeneratedPdfs(limit: number = 10): Promise<GeneratedPdf[]> {
+    return await db.select().from(generatedPdfs)
+      .orderBy(generatedPdfs.createdAt)
+      .limit(limit);
+  }
+
+  // Processing Jobs
+  async createProcessingJob(insertJob: InsertProcessingJob): Promise<ProcessingJob> {
+    const [job] = await db.insert(processingJobs).values(insertJob).returning();
+    return job;
+  }
+
+  async getProcessingJob(id: string): Promise<ProcessingJob | undefined> {
+    const [job] = await db.select().from(processingJobs).where(eq(processingJobs.id, id));
+    return job || undefined;
+  }
+
+  async updateProcessingJob(id: string, updates: Partial<ProcessingJob>): Promise<void> {
+    await db.update(processingJobs)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(processingJobs.id, id));
+  }
+
+  async getActiveProcessingJobs(): Promise<ProcessingJob[]> {
+    return await db.select().from(processingJobs)
+      .where(eq(processingJobs.status, 'processing'));
+  }
+}
+
+export const storage = new DatabaseStorage();
