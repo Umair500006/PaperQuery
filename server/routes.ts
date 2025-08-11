@@ -150,6 +150,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Process past papers to extract and categorize questions
+  app.post('/api/process-pastpapers', async (req, res) => {
+    try {
+      const { subject } = req.body;
+      
+      if (!subject) {
+        return res.status(400).json({ message: 'Subject is required' });
+      }
+
+      // Get all past paper documents for the subject
+      const pastPaperDocuments = await storage.getDocumentsByType('pastpaper');
+      const subjectPastPapers = pastPaperDocuments.filter(doc => 
+        doc.subject === subject || !doc.subject
+      );
+
+      if (subjectPastPapers.length === 0) {
+        return res.status(404).json({ message: 'No past paper documents found for this subject' });
+      }
+
+      // Check if topics exist for this subject
+      const availableTopics = await storage.getTopicsBySubject(subject);
+      if (availableTopics.length === 0) {
+        return res.status(400).json({ message: 'No topics found. Please process syllabus first to extract topics.' });
+      }
+
+      // Create a processing job
+      const jobData = insertProcessingJobSchema.parse({
+        type: 'question_extraction',
+        status: 'processing',
+        progress: 0,
+        statusMessage: 'Categorizing questions from past papers...',
+        documentIds: subjectPastPapers.map(doc => doc.id)
+      });
+
+      const job = await storage.createProcessingJob(jobData);
+
+      // Start background processing
+      processPastPapersAsync(job.id, subjectPastPapers, subject);
+
+      res.json({ jobId: job.id, message: 'Past paper processing started' });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Generate PDF
   app.post('/api/generate-pdf', async (req, res) => {
     try {
@@ -498,6 +543,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       throw new Error('Failed to convert SVG to PNG');
     }
+  }
+
+  // Background function to process past papers
+  async function processPastPapersAsync(jobId: string, pastPaperDocuments: any[], subject: string) {
+    try {
+      await storage.updateProcessingJob(jobId, {
+        progress: 10,
+        statusMessage: 'Loading available topics...'
+      });
+
+      // Get available topics for categorization
+      const availableTopics = await storage.getTopicsBySubject(subject);
+      const topicsForAI = availableTopics.map(t => ({
+        mainTopic: t.mainTopic,
+        subtopics: availableTopics
+          .filter(st => st.mainTopic === t.mainTopic && st.subtopic)
+          .map(st => st.subtopic!)
+          .filter(Boolean),
+        description: t.description || ''
+      }));
+
+      await storage.updateProcessingJob(jobId, {
+        progress: 20,
+        statusMessage: `Processing ${pastPaperDocuments.length} past paper documents...`
+      });
+
+      let processedDocuments = 0;
+      let totalQuestions = 0;
+
+      for (const document of pastPaperDocuments) {
+        try {
+          await storage.updateProcessingJob(jobId, {
+            progress: 20 + Math.floor((processedDocuments / pastPaperDocuments.length) * 60),
+            statusMessage: `Analyzing ${document.filename}...`
+          });
+
+          if (!document.extractedText) {
+            console.log(`Skipping ${document.filename} - no extracted text`);
+            processedDocuments++;
+            continue;
+          }
+
+          // Categorize questions using AI
+          const extractedQuestions = await categorizeQuestions(
+            document.extractedText,
+            topicsForAI,
+            subject
+          );
+
+          // Save questions to storage
+          for (const question of extractedQuestions) {
+            const matchingTopic = availableTopics.find(t => 
+              t.mainTopic === question.topicMatch && 
+              (!question.subtopicMatch || t.subtopic === question.subtopicMatch)
+            );
+
+            if (matchingTopic) {
+              await storage.createQuestion({
+                documentId: document.id,
+                topicId: matchingTopic.id,
+                questionText: question.questionText,
+                questionNumber: question.questionNumber,
+                paperYear: extractYearFromFilename(document.filename),
+                paperSession: extractSessionFromFilename(document.filename),
+                hasVectorDiagram: question.hasVectorDiagram,
+                difficulty: question.difficulty,
+                marks: question.marks || 1
+              });
+              totalQuestions++;
+            }
+          }
+
+          processedDocuments++;
+        } catch (error) {
+          console.error(`Error processing ${document.filename}:`, error);
+          // Continue with other documents
+        }
+      }
+
+      // Complete the job
+      await storage.updateProcessingJob(jobId, {
+        status: 'completed',
+        progress: 100,
+        statusMessage: `Successfully categorized ${totalQuestions} questions from ${processedDocuments} documents`,
+        result: {
+          documentsProcessed: processedDocuments,
+          questionsExtracted: totalQuestions
+        }
+      });
+
+    } catch (error) {
+      console.error('Error processing past papers:', error);
+      await storage.updateProcessingJob(jobId, {
+        status: 'error',
+        progress: 0,
+        statusMessage: 'Failed to process past papers',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  function extractYearFromFilename(filename: string): number | undefined {
+    const yearMatch = filename.match(/(\d{4})/);
+    return yearMatch ? parseInt(yearMatch[1]) : undefined;
+  }
+
+  function extractSessionFromFilename(filename: string): string | undefined {
+    if (filename.includes('_s')) return 'summer';
+    if (filename.includes('_w')) return 'winter';
+    if (filename.includes('_m')) return 'march';
+    return undefined;
   }
 
   const httpServer = createServer(app);

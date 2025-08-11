@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { List, Brain, Loader2 } from "lucide-react";
+import { List, Brain, Loader2, FileText } from "lucide-react";
 import { processSyllabus } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -143,6 +143,28 @@ export default function TopicSelector({
     processSyllabusMutation.mutate(currentSubject);
   };
 
+  const processPastPapersMutation = useMutation({
+    mutationFn: async (subject: string) => {
+      return apiRequest(`/api/process-pastpapers`, {
+        method: 'POST',
+        body: { subject }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/processing-jobs'] });
+      toast({ title: 'Past paper processing started', description: 'Questions will be categorized against topics' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Processing failed', description: error.message, variant: 'destructive' });
+    }
+  });
+
+  const isProcessingPastPapers = processPastPapersMutation.isPending;
+
+  const handleProcessPastPapers = () => {
+    processPastPapersMutation.mutate(currentSubject);
+  };
+
   const questionCount = (questionsData as any)?.questions?.length || 0;
   const diagramCount = (questionsData as any)?.questions?.filter((q: any) => q.hasVectorDiagram).length || 0;
   const years = (questionsData as any)?.questions?.map((q: any) => q.paperYear).filter(Boolean) || [];
@@ -178,7 +200,7 @@ export default function TopicSelector({
               <div className="flex gap-2">
                 <Button 
                   onClick={handleProcessSyllabus}
-                  disabled={processSyllabusMutation.isPending}
+                  disabled={processSyllabusMutation.isPending || isProcessingPastPapers}
                   className="bg-blue-600 hover:bg-blue-700 px-4"
                   data-testid="button-process-syllabus"
                   title="Process uploaded syllabus to extract topics and subtopics using AI"
@@ -196,12 +218,32 @@ export default function TopicSelector({
                   )}
                 </Button>
                 <Button 
+                  onClick={handleProcessPastPapers}
+                  disabled={isProcessingPastPapers || processSyllabusMutation.isPending || !currentSubject}
+                  className="bg-green-600 hover:bg-green-700 px-4"
+                  data-testid="button-process-pastpapers"
+                  title="Process uploaded past papers to categorize questions against topics"
+                >
+                  {isProcessingPastPapers ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Process Past Papers
+                    </>
+                  )}
+                </Button>
+                <Button 
                   onClick={() => refetchTopics()}
                   variant="outline"
                   size="sm"
                   className="px-3"
                   data-testid="button-refresh-topics"
                   title="Refresh topic list"
+                  disabled={processSyllabusMutation.isPending || isProcessingPastPapers}
                 >
                   Refresh
                 </Button>
@@ -221,13 +263,7 @@ export default function TopicSelector({
                 <p className="text-xs text-slate-400 text-center mt-1">
                   Found {(topicsData as any)?.topics?.length || 0} topic entries
                 </p>
-                {/* Debug info */}
-                <details className="mt-2">
-                  <summary className="text-xs text-slate-400 cursor-pointer">Debug Info</summary>
-                  <pre className="text-xs text-slate-400 mt-1 overflow-auto">
-                    {JSON.stringify(topicsData, null, 2)}
-                  </pre>
-                </details>
+
               </div>
             ) : (
               <Select value={currentTopic} onValueChange={handleMainTopicChange}>
