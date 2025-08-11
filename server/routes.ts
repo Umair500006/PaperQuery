@@ -302,6 +302,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✅ PDF extraction completed. Text length: ${pdfContent.text.length}`);
       console.log(`📝 Preview: ${pdfContent.text.substring(0, 100)}...`);
       await storage.updateDocumentContent(documentId, pdfContent.text);
+      
+      // Update document object with extracted text for immediate use
+      if (document) {
+        (document as any).extractedText = pdfContent.text;
+      }
 
       if (document.type === 'syllabus') {
         // Extract topics from syllabus using AI
@@ -582,10 +587,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             statusMessage: `Analyzing ${document.filename}...`
           });
 
-          if (!document.extractedText) {
-            console.log(`Skipping ${document.filename} - no extracted text`);
-            processedDocuments++;
-            continue;
+          if (!document.extractedText || document.extractedText.trim().length === 0) {
+            console.log(`⚠️ Skipping ${document.filename} - no extracted text (length: ${document.extractedText?.length || 0})`);
+            console.log(`📄 Document status: ${document.processingStatus}, Content preview: "${document.content?.substring(0, 100) || 'No content'}"`);
+            
+            // Try to re-extract if content exists but extractedText doesn't
+            if (document.content && document.content.trim().length > 50 && !document.extractedText) {
+              console.log(`🔧 Attempting to use document content as extracted text for ${document.filename}`);
+              document.extractedText = document.content;
+            } else {
+              processedDocuments++;
+              continue;
+            }
           }
 
           // Categorize questions using AI

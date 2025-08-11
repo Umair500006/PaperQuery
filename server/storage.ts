@@ -90,6 +90,8 @@ export class MemStorage implements IStorage {
     const document = this.documents.get(id);
     if (document) {
       document.content = content;
+      // Also set extractedText for backward compatibility
+      (document as any).extractedText = content;
       this.documents.set(id, document);
     }
   }
