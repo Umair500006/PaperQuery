@@ -49,8 +49,15 @@ export default function TopicSelector({
     return acc;
   }, {}) || {};
 
-  // Filter to only get main topics (those without subtopic)
-  const mainTopicsFromAPI = (topicsData as any)?.topics?.filter((topic: any) => !topic.subtopic) || [];
+  // Get unique main topics (by mainTopic name, regardless of subtopic value)
+  const mainTopicNames = new Set();
+  const mainTopicsFromAPI = (topicsData as any)?.topics?.filter((topic: any) => {
+    if (!mainTopicNames.has(topic.mainTopic)) {
+      mainTopicNames.add(topic.mainTopic);
+      return true;
+    }
+    return false;
+  }) || [];
 
   const mainTopics = mainTopicsFromAPI;
   const selectedTopicKey = Object.keys(groupedTopics).find((key: string) => 
@@ -132,7 +139,7 @@ export default function TopicSelector({
                   📚 Upload a syllabus first to extract topics using AI
                 </p>
                 <p className="text-xs text-slate-400 text-center mt-1">
-                  Found {(topicsData as any)?.topics?.length || 0} total topic entries
+                  Found {(topicsData as any)?.topics?.length || 0} total topic entries, {mainTopics.length} main topics
                 </p>
               </div>
             ) : (
