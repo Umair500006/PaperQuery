@@ -605,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 topicId: matchingTopic.id,
                 questionText: question.questionText,
                 questionNumber: question.questionNumber,
-                paperYear: extractYearFromFilename(document.filename),
+                paperYear: extractYearFromFilename(document.filename)?.toString(),
                 paperSession: extractSessionFromFilename(document.filename) || null,
                 hasVectorDiagram: question.hasVectorDiagram,
                 difficulty: question.difficulty,

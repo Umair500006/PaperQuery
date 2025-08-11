@@ -1,12 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
-
-// Note: In a real implementation, you would install and use:
-// - pdf-parse for text extraction
-// - pdf2pic for image extraction
-// - sharp for image processing
-// For this implementation, we'll create a simplified interface
+import PDFParser from 'pdf2json';
 
 const readFile = promisify(fs.readFile);
 
@@ -31,52 +26,62 @@ export interface PdfProcessingResult {
 
 export class PdfProcessor {
   async extractContent(filePath: string): Promise<PdfProcessingResult> {
-    try {
-      // In a real implementation, this would use pdf-parse
-      const buffer = await readFile(filePath);
+    return new Promise((resolve, reject) => {
+      const pdfParser = new (PDFParser as any)(null, 1);
       
-      // Simulate PDF processing
-      const simulatedText = await this.simulateTextExtraction(buffer);
-      const simulatedImages = await this.simulateImageExtraction(buffer);
-      
-      return {
-        text: simulatedText,
-        images: simulatedImages,
-        metadata: {
-          pageCount: Math.floor(Math.random() * 20) + 5,
-          fileSize: buffer.length,
-          title: path.basename(filePath, '.pdf')
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
+        reject(new Error(`PDF parsing failed: ${errData.parserError}`));
+      });
+
+      pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+        try {
+          // Extract text from parsed PDF data
+          let extractedText = '';
+          
+          if (pdfData.Pages) {
+            for (const page of pdfData.Pages) {
+              if (page.Texts) {
+                for (const textItem of page.Texts) {
+                  if (textItem.R) {
+                    for (const run of textItem.R) {
+                      if (run.T) {
+                        extractedText += decodeURIComponent(run.T) + ' ';
+                      }
+                    }
+                  }
+                }
+              }
+              extractedText += '\n\n'; // Add page breaks
+            }
+          }
+          
+          // Clean up the text
+          extractedText = extractedText.replace(/\s+/g, ' ').trim();
+          
+          if (!extractedText || extractedText.length === 0) {
+            console.warn(`No text extracted from ${path.basename(filePath)} - may be image-only PDF`);
+            extractedText = `[Image-only PDF detected: ${path.basename(filePath)}]
+
+This PDF appears to contain mainly images without extractable text.
+To process image-only PDFs, additional OCR libraries would be needed.`;
+          }
+          
+          resolve({
+            text: extractedText,
+            images: [], // Image extraction would require additional libraries
+            metadata: {
+              pageCount: pdfData.Pages?.length || 1,
+              fileSize: 0, // pdf2json doesn't provide file size
+              title: pdfData.Meta?.Title || path.basename(filePath, '.pdf')
+            }
+          });
+        } catch (error) {
+          reject(new Error(`Failed to process PDF data: ${error instanceof Error ? error.message : 'Unknown error'}`));
         }
-      };
-    } catch (error) {
-      throw new Error(`Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
+      });
 
-  private async simulateTextExtraction(buffer: Buffer): Promise<string> {
-    // In a real implementation, this would use pdf-parse to extract actual text
-    // For now, we'll return a placeholder that indicates the file was processed
-    return `[PDF Text Content - ${buffer.length} bytes processed]
-    
-This is a simulation of extracted PDF text content. In a real implementation, 
-this would contain the actual text extracted from the PDF file using pdf-parse library.
-
-The text would include:
-- Question numbers and text
-- Topic headings
-- Instructions
-- Answer spaces
-- Marking schemes (if applicable)
-
-Example O-Level Physics content might include:
-1. A ball is thrown vertically upward with an initial velocity of 20 m/s.
-   (a) Calculate the maximum height reached. [3 marks]
-   (b) Find the time taken to reach maximum height. [2 marks]
-
-2. Draw a force diagram showing the forces acting on a block sliding down
-   an inclined plane with friction. [4 marks]
-
-The actual implementation would extract this text accurately from the PDF.`;
+      pdfParser.loadPDF(filePath);
+    });
   }
 
   private async simulateImageExtraction(buffer: Buffer): Promise<Array<{
