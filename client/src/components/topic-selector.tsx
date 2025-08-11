@@ -21,7 +21,7 @@ export default function TopicSelector({
   const [currentTopic, setCurrentTopic] = useState(selectedTopic);
   const [currentSubtopic, setCurrentSubtopic] = useState(selectedSubtopic);
 
-  const { data: topicsData } = useQuery({
+  const { data: topicsData, isLoading: topicsLoading } = useQuery({
     queryKey: ['/api/topics', currentSubject],
     enabled: !!currentSubject,
   });
@@ -115,18 +115,28 @@ export default function TopicSelector({
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Main Topic</label>
-            <Select value={currentTopic} onValueChange={handleMainTopicChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a main topic..." />
-              </SelectTrigger>
-              <SelectContent>
-                {mainTopics.map((topic: any) => (
-                  <SelectItem key={topic.id} value={topic.id}>
-                    {topic.mainTopic}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {topicsLoading ? (
+              <div className="h-10 bg-slate-100 rounded animate-pulse"></div>
+            ) : mainTopics.length === 0 ? (
+              <div className="p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                <p className="text-sm text-slate-500 text-center">
+                  📚 Upload a syllabus first to extract topics using AI
+                </p>
+              </div>
+            ) : (
+              <Select value={currentTopic} onValueChange={handleMainTopicChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a main topic..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {mainTopics.map((topic: any) => (
+                    <SelectItem key={topic.id} value={topic.id}>
+                      {topic.mainTopic}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {subtopics.length > 0 && (

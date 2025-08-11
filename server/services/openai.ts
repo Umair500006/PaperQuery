@@ -31,19 +31,38 @@ export async function extractTopicsFromSyllabus(
       messages: [
         {
           role: "system",
-          content: `You are an expert in O-Level ${subject} curriculum analysis. Extract main topics and subtopics from the provided syllabus content. Return a JSON array of topics with mainTopic, subtopics (array), and description fields.`
+          content: `You are an expert in O-Level ${subject} curriculum analysis. Extract all main topics and their subtopics from the provided syllabus content.
+          
+          Focus on identifying:
+          1. Major topic headings that group related concepts
+          2. All subtopics under each main topic
+          3. Clear, concise descriptions of topic coverage
+          
+          Return your response as valid JSON with this exact structure:
+          {
+            "topics": [
+              {
+                "mainTopic": "Forces and Motion",
+                "subtopics": ["Velocity and Acceleration", "Newton's Laws", "Momentum"],
+                "description": "Study of how objects move and the forces that cause motion"
+              }
+            ]
+          }
+          
+          Extract ALL topics comprehensively from the syllabus. Ensure subtopics are specific learning objectives within each main topic.`
         },
         {
           role: "user",
-          content: `Extract all main topics and their subtopics from this O-Level ${subject} syllabus:\n\n${syllabusContent}\n\nReturn as JSON array with format: [{"mainTopic": "string", "subtopics": ["string"], "description": "string"}]`
+          content: `Extract all topics and subtopics from this ${subject} O-level syllabus document:\n\n${syllabusContent}`
         }
       ],
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const result = JSON.parse(response.choices[0].message.content || '{"topics": []}');
     return result.topics || [];
   } catch (error) {
+    console.error('Error extracting topics from syllabus:', error);
     throw new Error(`Failed to extract topics from syllabus: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

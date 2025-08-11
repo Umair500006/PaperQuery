@@ -18,7 +18,8 @@ import { insertDocumentSchema, insertProcessingJobSchema } from "@shared/schema"
 const upload = multer({
   dest: 'uploads/',
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: 50 * 1024 * 1024, // 50MB per file
+    files: 20, // Maximum 20 files per upload
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') {
@@ -42,6 +43,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!type || !['syllabus', 'pastpaper', 'markingscheme'].includes(type)) {
         return res.status(400).json({ message: 'Invalid document type' });
+      }
+
+      // For past papers and marking schemes, subject is required
+      if ((type === 'pastpaper' || type === 'markingscheme') && !subject) {
+        return res.status(400).json({ message: 'Subject is required for past papers and marking schemes' });
       }
 
       const uploadedDocuments = [];
@@ -211,14 +217,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateDocumentContent(documentId, pdfContent.text);
 
       if (document.type === 'syllabus') {
-        // Extract topics from syllabus
+        // Extract topics from syllabus using AI
+        console.log(`🤖 AI analyzing syllabus for ${document.subject || 'general'} topics...`);
         const extractedTopics = await extractTopicsFromSyllabus(
           pdfContent.text, 
           document.subject || 'general'
         );
 
+        console.log(`✅ AI extracted ${extractedTopics.length} main topics from syllabus`);
+
         // Save topics to storage
         for (const topic of extractedTopics) {
+          // Create main topic
           await storage.createTopic({
             documentId,
             subject: document.subject || 'general',
@@ -234,10 +244,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               subject: document.subject || 'general',
               mainTopic: topic.mainTopic,
               subtopic,
-              description: `Subtopic of ${topic.mainTopic}`
+              description: `Subtopic covering ${subtopic}`
             });
           }
         }
+
+        console.log(`📝 Stored ${extractedTopics.length} main topics with ${extractedTopics.reduce((sum, t) => sum + t.subtopics.length, 0)} total subtopics`);
       } else if (document.type === 'pastpaper') {
         // Get available topics for categorization
         const availableTopics = await storage.getTopicsBySubject(document.subject || 'general');

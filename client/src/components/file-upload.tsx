@@ -117,6 +117,8 @@ export default function FileUpload({
         return <BookOpen className="text-emerald-600" />;
       case 'file-alt':
         return <FileText className="text-blue-600" />;
+      case 'clipboard-list':
+        return <i className="fas fa-clipboard-list text-purple-600"></i>;
       default:
         return <FileText className="text-blue-600" />;
     }
@@ -128,6 +130,8 @@ export default function FileUpload({
         return 'bg-emerald-100';
       case 'file-alt':
         return 'bg-blue-100';
+      case 'clipboard-list':
+        return 'bg-purple-100';
       default:
         return 'bg-blue-100';
     }
@@ -147,7 +151,7 @@ export default function FileUpload({
         </div>
 
         {/* Subject Selection */}
-        {type !== 'syllabus' && (
+        {type === 'pastpaper' && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-slate-700 mb-2">Subject</label>
             <select 
@@ -185,7 +189,7 @@ export default function FileUpload({
               </p>
             </div>
             <p className="text-xs text-slate-400">
-              Supports: PDF up to {acceptMultiple ? '50MB total' : '10MB'}
+              Supports: PDF up to 50MB each • {acceptMultiple ? 'Multiple files allowed' : 'Single file only'}
             </p>
           </div>
         </div>

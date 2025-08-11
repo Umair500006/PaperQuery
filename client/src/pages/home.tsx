@@ -132,6 +132,16 @@ export default function Home() {
               onFilesUploaded={handleFilesUploaded}
             />
 
+            {/* Marking Schemes Upload */}
+            <FileUpload
+              type="markingscheme"
+              title="Upload Marking Schemes"
+              description="Upload marking scheme PDFs to extract answer patterns"
+              icon="clipboard-list"
+              acceptMultiple={true}
+              onFilesUploaded={handleFilesUploaded}
+            />
+
             {/* Processing Status */}
             <ProcessingStatus />
           </div>
