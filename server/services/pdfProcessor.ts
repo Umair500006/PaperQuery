@@ -30,7 +30,19 @@ export class PdfProcessor {
       const pdfParser = new (PDFParser as any)(null, 1);
       
       pdfParser.on("pdfParser_dataError", (errData: any) => {
-        reject(new Error(`PDF parsing failed: ${errData.parserError}`));
+        console.error(`❌ PDF parsing error for ${path.basename(filePath)}:`, errData.parserError);
+        
+        // For corrupted or problematic PDFs, provide a helpful message instead of failing completely
+        const fallbackText = `[PDF Processing Error - ${path.basename(filePath)}]
+
+This PDF file appears to have structural issues that prevent text extraction:
+- Error: ${errData.parserError}
+- This may be due to: corrupted file, non-standard PDF format, or image-only content
+- Consider re-uploading the file or using a different PDF version
+
+To process this type of file, additional OCR capabilities would be needed.`;
+        
+        resolve({ text: fallbackText });
       });
 
       pdfParser.on("pdfParser_dataReady", (pdfData: any) => {

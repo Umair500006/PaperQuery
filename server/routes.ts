@@ -580,11 +580,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let processedDocuments = 0;
       let totalQuestions = 0;
 
+      console.log(`📋 Starting to process ${pastPaperDocuments.length} past paper documents`);
+
       for (const document of pastPaperDocuments) {
         try {
+          const currentProgress = 20 + Math.floor((processedDocuments / pastPaperDocuments.length) * 60);
+          console.log(`📄 Processing document ${processedDocuments + 1}/${pastPaperDocuments.length}: ${document.filename}`);
+          
           await storage.updateProcessingJob(jobId, {
-            progress: 20 + Math.floor((processedDocuments / pastPaperDocuments.length) * 60),
-            statusMessage: `Analyzing ${document.filename}...`
+            progress: currentProgress,
+            statusMessage: `Analyzing ${document.filename}... (${processedDocuments + 1}/${pastPaperDocuments.length})`
           });
 
           if (!document.extractedText || document.extractedText.trim().length === 0) {
@@ -599,6 +604,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               processedDocuments++;
               continue;
             }
+          }
+
+          // Skip if the extracted text indicates a PDF processing error
+          if (document.extractedText.includes('[PDF Processing Error')) {
+            console.log(`⚠️ Skipping ${document.filename} - PDF has processing errors`);
+            processedDocuments++;
+            continue;
           }
 
           // Categorize questions using AI

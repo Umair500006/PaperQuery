@@ -28,6 +28,8 @@ export default function ProcessingStatus() {
     switch (type) {
       case 'syllabus_analysis':
         return <Brain className="h-4 w-4 text-purple-600" />;
+      case 'question_extraction':
+        return <Settings className="h-4 w-4 text-green-600" />;
       case 'pdf_generation':
         return <Settings className="h-4 w-4 text-blue-600" />;
       default:
@@ -39,6 +41,8 @@ export default function ProcessingStatus() {
     switch (type) {
       case 'syllabus_analysis':
         return 'Syllabus Analysis';
+      case 'question_extraction':
+        return 'Question Extraction';
       case 'pdf_generation':
         return 'PDF Generation';
       default:
