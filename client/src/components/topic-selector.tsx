@@ -77,7 +77,13 @@ export default function TopicSelector({
 
   const handleSubtopicChange = (subtopicId: string) => {
     setCurrentSubtopic(subtopicId);
-    setCurrentTopic(subtopicId); // Use subtopic ID as the topic ID for queries
+    if (subtopicId === "all" || subtopicId === "") {
+      // Show all questions for the main topic
+      setCurrentTopic(currentTopic);
+    } else {
+      // Use subtopic ID as the topic ID for queries
+      setCurrentTopic(subtopicId);
+    }
   };
 
   const questionCount = (questionsData as any)?.questions?.length || 0;
@@ -147,7 +153,7 @@ export default function TopicSelector({
                   <SelectValue placeholder="All subtopics" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All subtopics</SelectItem>
+                  <SelectItem value="all">All subtopics</SelectItem>
                   {subtopics.map((subtopic: any) => (
                     <SelectItem key={subtopic.id} value={subtopic.id}>
                       {subtopic.subtopic}
