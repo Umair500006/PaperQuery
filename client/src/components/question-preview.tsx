@@ -182,9 +182,10 @@ export default function QuestionPreview({ selectedTopic, onGeneratePdf }: Questi
     })
   );
 
+  // Fetch all questions when selectedTopic is provided, or all questions if no topic selected
   const { data: questionsData, isLoading } = useQuery({
-    queryKey: [`/api/questions/topic/${selectedTopic}`],
-    enabled: !!selectedTopic,
+    queryKey: selectedTopic ? [`/api/questions/topic/${selectedTopic}`] : ['/api/questions'],
+    enabled: true,
   });
 
   const questions = (questionsData as any)?.questions || [];

@@ -101,6 +101,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get questions by topic
+  // Get all questions
+  app.get('/api/questions', async (req, res) => {
+    try {
+      const questions = await storage.getAllQuestions();
+      res.json({ questions });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   app.get('/api/questions/topic/:topicId', async (req, res) => {
     try {
       const { topicId } = req.params;
@@ -217,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate PDF using selected questions
-      const pdfResult = await pdfGenerator.generatePdf(
+      const pdfResult = await pdfGenerator.generateCustomPdf(
         questions,
         config || {
           includeQuestionText: true,
@@ -236,9 +246,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filePath: pdfResult.filePath,
         fileSize: pdfResult.fileSize,
         questionCount: questions.length,
-        topic: 'Custom Selection',
+        subject: 'Custom Selection',
+        mainTopic: 'Custom Selection',
         subtopic: null,
-        config: config || {}
+        configuration: config || {}
       });
 
       res.json({ 

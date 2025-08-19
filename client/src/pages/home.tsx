@@ -172,15 +172,13 @@ export default function Home() {
             {/* Processing Status */}
             <ProcessingStatus />
 
-            {/* Question Preview and PDF Builder */}
-            {selectedTopic && (
-              <div className="mt-8">
-                <QuestionPreview 
-                  selectedTopic={selectedTopic}
-                  onGeneratePdf={(questionIds) => generateCustomPdfMutation.mutate(questionIds)}
-                />
-              </div>
-            )}
+            {/* Question Preview and PDF Builder - Always show */}
+            <div className="mt-8">
+              <QuestionPreview 
+                selectedTopic={selectedTopic}
+                onGeneratePdf={(questionIds) => generateCustomPdfMutation.mutate(questionIds)}
+              />
+            </div>
           </div>
 
           {/* Right Column: Topic Selection & Controls */}
@@ -199,23 +197,7 @@ export default function Home() {
               onConfigChange={setOutputConfig}
             />
 
-            {/* Generate Button */}
-            <Card className="border border-slate-200 shadow-sm">
-              <CardContent className="p-6">
-                <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 transition-colors"
-                  onClick={handleGeneratePdf}
-                  disabled={!selectedTopic || currentStep === 4}
-                >
-                  <i className="fas fa-magic mr-2"></i>
-                  {currentStep === 4 ? "Generating..." : "Generate Topic PDF"}
-                </Button>
-                
-                <div className="mt-4 text-center">
-                  <p className="text-xs text-slate-500">Estimated processing time: 2-3 minutes</p>
-                </div>
-              </CardContent>
-            </Card>
+
 
             {/* Recent Generations */}
             <Card className="border border-slate-200 shadow-sm">

@@ -27,6 +27,7 @@ export interface IStorage {
   // Questions
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestion(id: string): Promise<Question | undefined>;
+  getAllQuestions(): Promise<Question[]>;
   getQuestionsByTopic(topicId: string): Promise<Question[]>;
   getQuestionsByDocument(documentId: string): Promise<Question[]>;
 
@@ -149,6 +150,10 @@ export class MemStorage implements IStorage {
 
   async getQuestion(id: string): Promise<Question | undefined> {
     return this.questions.get(id);
+  }
+
+  async getAllQuestions(): Promise<Question[]> {
+    return Array.from(this.questions.values());
   }
 
   async getQuestionsByTopic(topicId: string): Promise<Question[]> {
@@ -283,6 +288,10 @@ export class DatabaseStorage implements IStorage {
   async getQuestion(id: string): Promise<Question | undefined> {
     const [question] = await db.select().from(questions).where(eq(questions.id, id));
     return question || undefined;
+  }
+
+  async getAllQuestions(): Promise<Question[]> {
+    return await db.select().from(questions);
   }
 
   async getQuestionsByTopic(topicId: string): Promise<Question[]> {
