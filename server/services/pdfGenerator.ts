@@ -215,6 +215,22 @@ export class PdfGenerator {
     content += `Generated on: ${new Date().toLocaleDateString()}\n`;
     content += `Total Questions: ${questions.length}\n\n`;
     
+    // Add important disclaimer about incomplete content
+    content += `⚠️  IMPORTANT DISCLAIMER:\n`;
+    content += `${'='.repeat(60)}\n`;
+    content += `This PDF contains INCOMPLETE question content extracted from original papers.\n`;
+    content += `The questions shown here are only the OPENING SENTENCES, not complete questions.\n`;
+    content += `\n`;
+    content += `Missing from this PDF:\n`;
+    content += `• Complete question text with all parts (a), (b), (c), etc.\n`;
+    content += `• Detailed instructions and problem statements\n`;
+    content += `• All figures, diagrams, and visual elements\n`;
+    content += `• Data tables, graphs, and reference materials\n`;
+    content += `• Multiple choice options (where applicable)\n`;
+    content += `\n`;
+    content += `For complete questions, please refer to the original past papers.\n`;
+    content += `${'='.repeat(60)}\n\n`;
+    
     questions.forEach((question, index) => {
       content += `\n${'='.repeat(50)}\n`;
       content += `QUESTION ${index + 1}\n`;
@@ -225,11 +241,16 @@ export class PdfGenerator {
         content += `QUESTION TEXT:\n`;
         content += `${question.questionText}\n`;
         
-        // Add note about incomplete extraction if text seems truncated
-        if (question.questionText.length < 200 && question.questionText.includes('Fig.')) {
-          content += `\n⚠️  NOTE: This appears to be a partial question text. The complete question\n`;
-          content += `   may include additional parts, sub-questions, and detailed instructions\n`;
-          content += `   that were not fully captured during extraction.\n`;
+        // Add note about incomplete extraction for ALL questions since they're all incomplete
+        content += `\n⚠️  INCOMPLETE CONTENT WARNING:\n`;
+        content += `This is only the opening sentence of the question. The complete question likely includes:\n`;
+        content += `• Additional question parts (a), (b), (c), etc.\n`;
+        content += `• Specific instructions and requirements\n`;
+        content += `• Calculations or analysis to perform\n`;
+        content += `• Multiple sub-questions with different marks\n`;
+        
+        if (question.questionText.includes('Fig.')) {
+          content += `• Referenced figures and diagrams that are essential to solve the question\n`;
         }
         content += '\n';
       }
@@ -282,9 +303,24 @@ export class PdfGenerator {
         content += '\n';
       }
       
+      // Add information about what the complete question should contain
+      content += `WHAT THE COMPLETE QUESTION SHOULD CONTAIN:\n`;
+      content += `• Full problem statement with context and setup\n`;
+      content += `• Multiple question parts, typically (a), (b), (c), etc.\n`;
+      content += `• Specific calculations or analysis required\n`;
+      content += `• Mark allocations for each part\n`;
+      
+      if (question.questionText.includes('Fig.')) {
+        content += `• Essential diagrams and figures referenced in the text\n`;
+      }
+      
+      content += `• Clear instructions on what students need to find or prove\n`;
+      content += `\n`;
+      
       // Add space for answer
       if (config.includeAnswerSchemes) {
-        content += `ANSWER SPACE:\n`;
+        content += `ANSWER SPACE (for practice):\n`;
+        content += `${'_'.repeat(60)}\n\n`;
         content += `${'_'.repeat(60)}\n\n`;
         content += `${'_'.repeat(60)}\n\n`;
         content += `${'_'.repeat(60)}\n\n`;
