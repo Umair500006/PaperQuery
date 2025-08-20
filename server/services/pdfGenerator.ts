@@ -216,22 +216,81 @@ export class PdfGenerator {
     content += `Total Questions: ${questions.length}\n\n`;
     
     questions.forEach((question, index) => {
-      content += `Question ${index + 1}:\n`;
-      content += `${question.questionText}\n`;
+      content += `\n${'='.repeat(50)}\n`;
+      content += `QUESTION ${index + 1}\n`;
+      content += `${'='.repeat(50)}\n\n`;
       
-      if (config.includeSourceInfo && question.paperYear) {
-        content += `Source: ${question.paperYear} ${question.paperSession || ''} Paper\n`;
+      // Include the complete question text
+      if (config.includeQuestionText) {
+        content += `QUESTION TEXT:\n`;
+        content += `${question.questionText}\n`;
+        
+        // Add note about incomplete extraction if text seems truncated
+        if (question.questionText.length < 200 && question.questionText.includes('Fig.')) {
+          content += `\n⚠️  NOTE: This appears to be a partial question text. The complete question\n`;
+          content += `   may include additional parts, sub-questions, and detailed instructions\n`;
+          content += `   that were not fully captured during extraction.\n`;
+        }
+        content += '\n';
+      }
+      
+      // Add metadata section
+      let metadata = [];
+      
+      if (question.questionNumber) {
+        metadata.push(`Question Number: ${question.questionNumber}`);
       }
       
       if (question.marks) {
-        content += `Marks: ${question.marks}\n`;
+        metadata.push(`Marks: ${question.marks}`);
       }
       
-      if (question.hasVectorDiagram && config.includeVectorDiagrams) {
-        content += `[Vector Diagram Included]\n`;
+      if (question.difficulty) {
+        metadata.push(`Difficulty: ${question.difficulty.toUpperCase()}`);
       }
       
-      content += '\n---\n\n';
+      if (config.includeSourceInfo && question.paperYear) {
+        metadata.push(`Source: ${question.paperYear} ${question.paperSession || ''} Paper`);
+      }
+      
+      if (metadata.length > 0) {
+        content += `QUESTION DETAILS:\n`;
+        metadata.forEach(item => content += `• ${item}\n`);
+        content += '\n';
+      }
+      
+      // Handle vector diagrams and figures
+      if ((question.hasVectorDiagram && config.includeVectorDiagrams) || 
+          question.questionText.includes('Fig.')) {
+        content += `DIAGRAMS & FIGURES:\n`;
+        
+        if (question.hasVectorDiagram) {
+          content += `• Contains vector diagrams or physics illustrations\n`;
+        }
+        
+        if (question.questionText.includes('Fig.')) {
+          // Extract figure references
+          const figRefs = question.questionText.match(/Fig\.\s*[\d.]+/g) || [];
+          figRefs.forEach(ref => {
+            content += `• References ${ref} (not included in this PDF)\n`;
+          });
+        }
+        
+        content += `• ⚠️  IMPORTANT: This question requires visual elements from the original paper\n`;
+        content += `• Students should refer to the original question paper for complete figures\n`;
+        content += `• Diagrams are essential for understanding and solving this question\n`;
+        content += '\n';
+      }
+      
+      // Add space for answer
+      if (config.includeAnswerSchemes) {
+        content += `ANSWER SPACE:\n`;
+        content += `${'_'.repeat(60)}\n\n`;
+        content += `${'_'.repeat(60)}\n\n`;
+        content += `${'_'.repeat(60)}\n\n`;
+      }
+      
+      content += '\n';
     });
     
     return content;
@@ -244,9 +303,15 @@ export class PdfGenerator {
     // Create a new PDF document
     const doc = new jsPDF();
     
-    // Add title
-    doc.setFontSize(16);
+    // Add title with better formatting
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
     doc.text('O-Level Past Paper Questions', 20, 20);
+    
+    // Add subtitle
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Custom Question Selection', 20, 30);
     
     // Split content into lines and add to PDF
     const lines = content.split('\n');
