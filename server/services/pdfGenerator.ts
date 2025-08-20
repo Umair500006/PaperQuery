@@ -61,7 +61,7 @@ export class PdfGenerator {
       await this.writePdfFile(filePath, pdfContent);
       
       // Calculate statistics
-      const diagramCount = filteredQuestions.filter(q => q.hasVectorDiagram).length;
+      const diagramCount = filteredQuestions.filter(q => q.hasVectorDiagram === true).length;
       const fileSize = await this.getFileSize(filePath);
       
       return {
@@ -100,7 +100,7 @@ export class PdfGenerator {
       await this.writePdfFile(filePath, pdfContent);
       
       // Calculate statistics
-      const diagramCount = filteredQuestions.filter(q => q.hasVectorDiagram).length;
+      const diagramCount = filteredQuestions.filter(q => q.hasVectorDiagram === true).length;
       const fileSize = await this.getFileSize(filePath);
       
       return {

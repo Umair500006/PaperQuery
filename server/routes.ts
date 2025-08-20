@@ -240,12 +240,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `Selected questions from multiple topics`
       );
 
+      console.log('PDF Result:', { 
+        questionCount: pdfResult.questionCount,
+        diagramCount: pdfResult.diagramCount,
+        questions: questions.map(q => ({ id: q.id, hasVectorDiagram: q.hasVectorDiagram }))
+      });
+
       // Save PDF metadata
       const pdfMetadata = await storage.createGeneratedPdf({
         filename: pdfResult.filename,
         filePath: pdfResult.filePath,
         fileSize: pdfResult.fileSize,
         questionCount: questions.length,
+        diagramCount: pdfResult.diagramCount || 0,
         subject: 'Custom Selection',
         mainTopic: 'Custom Selection',
         subtopic: null,

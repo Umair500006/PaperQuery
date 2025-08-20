@@ -8,7 +8,7 @@ This is a full-stack web application that uses AI to analyze O-level science pas
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (January 2025)
+## Recent Changes (August 2025)
 
 ### Database Migration Completed
 - Successfully migrated from in-memory storage to persistent PostgreSQL database
@@ -27,10 +27,19 @@ Preferred communication style: Simple, everyday language.
 - Added question metadata display: difficulty level, marks, vector diagrams, paper year/session
 - Custom PDF generation API endpoint for user-selected questions
 
+### Major UI/UX Improvements (August 2025)
+- **Single Question Interface**: Consolidated PDF generation into one streamlined drag-and-drop interface
+- **All Questions Display**: Questions now show immediately on dashboard without requiring topic selection
+- **Fixed PDF Generation**: Implemented proper PDF creation using jsPDF library - files now download and open correctly
+- **Database Error Resolution**: Fixed diagram_count null constraint violations in custom PDF generation
+- **Enhanced API**: Added `/api/questions` endpoint to fetch all questions regardless of topic filter
+
 ### Bug Fixes
 - Fixed PDF download issues by adding proper PDF headers to generated files
 - Corrected TypeScript import issues for component libraries
 - Enhanced error handling throughout the application pipeline
+- Resolved database constraint violations for diagram_count field
+- Fixed question visibility issues on main dashboard
 
 ## System Architecture
 
