@@ -215,20 +215,14 @@ export class PdfGenerator {
     content += `Generated on: ${new Date().toLocaleDateString()}\n`;
     content += `Total Questions: ${questions.length}\n\n`;
     
-    // Add important disclaimer about incomplete content
-    content += `⚠️  IMPORTANT DISCLAIMER:\n`;
+    // Add information about PDF content  
+    content += `📚 PDF CONTENT INFORMATION:\n`;
     content += `${'='.repeat(60)}\n`;
-    content += `This PDF contains INCOMPLETE question content extracted from original papers.\n`;
-    content += `The questions shown here are only the OPENING SENTENCES, not complete questions.\n`;
+    content += `This PDF contains questions extracted from O-Level Physics past papers.\n`;
+    content += `Each question includes the available text and metadata.\n`;
     content += `\n`;
-    content += `Missing from this PDF:\n`;
-    content += `• Complete question text with all parts (a), (b), (c), etc.\n`;
-    content += `• Detailed instructions and problem statements\n`;
-    content += `• All figures, diagrams, and visual elements\n`;
-    content += `• Data tables, graphs, and reference materials\n`;
-    content += `• Multiple choice options (where applicable)\n`;
-    content += `\n`;
-    content += `For complete questions, please refer to the original past papers.\n`;
+    content += `Note: Some questions may reference figures or diagrams from the original papers.\n`;
+    content += `For visual elements, please refer to the original question papers.\n`;
     content += `${'='.repeat(60)}\n\n`;
     
     questions.forEach((question, index) => {
@@ -241,16 +235,10 @@ export class PdfGenerator {
         content += `QUESTION TEXT:\n`;
         content += `${question.questionText}\n`;
         
-        // Add note about incomplete extraction for ALL questions since they're all incomplete
-        content += `\n⚠️  INCOMPLETE CONTENT WARNING:\n`;
-        content += `This is only the opening sentence of the question. The complete question likely includes:\n`;
-        content += `• Additional question parts (a), (b), (c), etc.\n`;
-        content += `• Specific instructions and requirements\n`;
-        content += `• Calculations or analysis to perform\n`;
-        content += `• Multiple sub-questions with different marks\n`;
-        
-        if (question.questionText.includes('Fig.')) {
-          content += `• Referenced figures and diagrams that are essential to solve the question\n`;
+        // Add note about question completeness
+        if (question.questionText.length < 100 || !question.questionText.includes('(')) {
+          content += `\n📝 Note: This may be a partial question. Complete questions typically include\n`;
+          content += `multiple parts and detailed instructions.\n`;
         }
         content += '\n';
       }
